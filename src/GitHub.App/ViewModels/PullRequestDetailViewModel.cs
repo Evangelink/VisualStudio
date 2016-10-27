@@ -318,11 +318,12 @@ namespace GitHub.ViewModels
         /// <summary>
         /// Gets the specified file as it appears in the pull request.
         /// </summary>
-        /// <param name="node">The file or directory node.</param>
+        /// <param name="file">The file or directory node.</param>
         /// <returns>The path to the extracted file.</returns>
-        public Task<string> ExtractFile(IPullRequestChangeNode node)
+        public Task<string> ExtractFile(IPullRequestFileNode file)
         {
-            return pullRequestsService.ExtractFile(repository, model.Head.Sha, node.Path).ToTask();
+            var path = Path.Combine(file.DirectoryPath, file.FileName);
+            return pullRequestsService.ExtractFile(repository, model.Head.Sha, path).ToTask();
         }
 
         /// <summary>
@@ -330,14 +331,15 @@ namespace GitHub.ViewModels
         /// </summary>
         /// <param name="file">The changed file.</param>
         /// <returns>A tuple containing the full path to the before and after files.</returns>
-        public Task<Tuple<string, string>> ExtractDiffFiles(IPullRequestChangeNode file)
+        public Task<Tuple<string, string>> ExtractDiffFiles(IPullRequestFileNode file)
         {
-            return pullRequestsService.ExtractDiffFiles(repository, model, file.Path).ToTask();
+            var path = Path.Combine(file.DirectoryPath, file.FileName);
+            return pullRequestsService.ExtractDiffFiles(repository, model, path).ToTask();
         }
 
-        static IEnumerable<IPullRequestFileNode> CreateChangedFilesList(IEnumerable<IPullRequestFileModel> files)
+        IEnumerable<IPullRequestFileNode> CreateChangedFilesList(IEnumerable<IPullRequestFileModel> files)
         {
-            return files.Select(x => new PullRequestFileNode(x.FileName, x.Status));
+            return files.Select(x => new PullRequestFileNode(repository.LocalPath, x.FileName, x.Status));
         }
 
         static IPullRequestDirectoryNode CreateChangedFilesTree(IEnumerable<IPullRequestFileNode> files)
@@ -349,8 +351,7 @@ namespace GitHub.ViewModels
 
             foreach (var file in files)
             {
-                var dirName = Path.GetDirectoryName(file.Path);
-                var dir = GetDirectory(dirName, dirs);
+                var dir = GetDirectory(file.DirectoryPath, dirs);
                 dir.Files.Add(file);
             }
 

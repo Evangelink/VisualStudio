@@ -160,7 +160,7 @@ namespace GitHub.Services
 
         public bool IsPullRequestFromFork(ILocalRepositoryModel repository, IPullRequestModel pullRequest)
         {
-            return pullRequest.Head.RepositoryCloneUrl.ToRepositoryUrl() != repository.CloneUrl.ToRepositoryUrl();
+            return pullRequest.Head.RepositoryCloneUrl?.ToRepositoryUrl() != repository.CloneUrl.ToRepositoryUrl();
         }
 
         public IObservable<Unit> SwitchToBranch(ILocalRepositoryModel repository, IPullRequestModel pullRequest)
@@ -218,7 +218,7 @@ namespace GitHub.Services
             {
                 var repo = gitService.GetRepository(repository.LocalPath);
                 await gitClient.Fetch(repo, "origin");
-                var result= await gitClient.ExtractFile(repo, commitSha, fileName);
+                var result = await gitClient.ExtractFile(repo, commitSha, fileName);
                 return Observable.Return(result);
             });
         }

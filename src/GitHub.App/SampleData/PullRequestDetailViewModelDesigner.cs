@@ -13,6 +13,8 @@ namespace GitHub.SampleData
     {
         public PullRequestDetailViewModelDesigner()
         {
+            var repoPath = @"C:\Repo";
+
             Model = new PullRequestModel(419, 
                 "Error handling/bubbling from viewmodels to views to viewhosts",
                  new AccountDesigner { Login = "shana", IsUser = true },
@@ -35,9 +37,9 @@ This requires that errors be propagated from the viewmodel to the view and from 
             var gitHubDir = new PullRequestDirectoryNode("GitHub");
             var modelsDir = new PullRequestDirectoryNode("Models");
             var repositoriesDir = new PullRequestDirectoryNode("Repositories");
-            var itrackingBranch = new PullRequestFileNode(@"GitHub\Models\ITrackingBranch.cs", PullRequestFileStatus.Modified);
-            var oldBranchModel = new PullRequestFileNode(@"GitHub\Models\OldBranchModel.cs", PullRequestFileStatus.Removed);
-            var concurrentRepositoryConnection = new PullRequestFileNode(@"GitHub\Repositories\ConcurrentRepositoryConnection.cs", PullRequestFileStatus.Added);
+            var itrackingBranch = new PullRequestFileNode(repoPath, @"GitHub\Models\ITrackingBranch.cs", PullRequestFileStatus.Modified);
+            var oldBranchModel = new PullRequestFileNode(repoPath, @"GitHub\Models\OldBranchModel.cs", PullRequestFileStatus.Removed);
+            var concurrentRepositoryConnection = new PullRequestFileNode(repoPath, @"GitHub\Repositories\ConcurrentRepositoryConnection.cs", PullRequestFileStatus.Added);
 
             repositoriesDir.Files.Add(concurrentRepositoryConnection);
             modelsDir.Directories.Add(repositoriesDir);
@@ -76,12 +78,12 @@ This requires that errors be propagated from the viewmodel to the view and from 
         public ReactiveCommand<object> OpenFile { get; }
         public ReactiveCommand<object> DiffFile { get; }
 
-        public Task<string> ExtractFile(IPullRequestChangeNode node)
+        public Task<string> ExtractFile(IPullRequestFileNode file)
         {
             throw new NotImplementedException();
         }
 
-        public Task<Tuple<string, string>> ExtractDiffFiles(IPullRequestChangeNode file)
+        public Task<Tuple<string, string>> ExtractDiffFiles(IPullRequestFileNode file)
         {
             throw new NotImplementedException();
         }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -78,17 +79,24 @@ namespace GitHub.VisualStudio.UI.Views
             {
                 var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(commandType));
 
+                var iconDrawing = new GeometryDrawing
+                {
+                    Geometry = OcticonPath.GetGeometryForIcon(Octicon.three_bars),
+                };
+
+                // I can't find a way to bind a DynamicResource to GeometryDrawing.Path, so bind the brush we
+                // want to this.Foreground and bind GeometryDrawing.Path to that.
+                var brushBinding = new Binding(nameof(Foreground));
+                brushBinding.Source = this;
+                BindingOperations.SetBinding(iconDrawing, GeometryDrawing.BrushProperty, brushBinding);
+
                 var command = commandCtor.Invoke(new object[]
                 {
                     OpenChangesOptionsMenu,
                     "Options",
                     new DrawingBrush
                     {                        
-                        Drawing = new GeometryDrawing
-                        {
-                            Brush = (Brush)FindResource("GitHubVsWindowText"),
-                            Geometry = OcticonPath.GetGeometryForIcon(Octicon.three_bars),
-                        },                        
+                        Drawing = iconDrawing,                        
                         Viewport = new Rect(0.1, 0.1, 0.8, 0.8),
                     },
                 });
@@ -125,10 +133,9 @@ namespace GitHub.VisualStudio.UI.Views
             var window = Services.Dte.ItemOperations.OpenFile(fileName);
 
             // If the file we extracted isn't the current file on disk, make the window read-only.
-            window.Document.ReadOnly = fileName != file.Path;
+            window.Document.ReadOnly = fileName != file.DirectoryPath;
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "file")]
         async Task DoDiffFile(IPullRequestFileNode file)
         {
             var fileNames = await ViewModel.ExtractDiffFiles(file);
@@ -139,7 +146,7 @@ namespace GitHub.VisualStudio.UI.Views
                 fileNames.Item1,
                 fileNames.Item2,
                 $"{leftLabel} vs {rightLabel}",
-                file.Path,
+                file.DirectoryPath,
                 leftLabel,
                 rightLabel,
                 string.Empty,
@@ -149,7 +156,7 @@ namespace GitHub.VisualStudio.UI.Views
                     __VSDIFFSERVICEOPTIONS.VSDIFFOPT_RightFileIsTemporary));
         }
 
-        private void FileListMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        void FileListMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             var file = (e.OriginalSource as FrameworkElement)?.DataContext as IPullRequestFileNode;
 
@@ -167,7 +174,7 @@ namespace GitHub.VisualStudio.UI.Views
             }
         }
 
-        private void FileListMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        void FileListMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             var item = (e.OriginalSource as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
             
@@ -175,6 +182,41 @@ namespace GitHub.VisualStudio.UI.Views
             {
                 // Select tree view item on right click.
                 item.IsSelected = true;
+            }
+        }
+
+        void ListView_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            ApplyContextMenuBinding<ListViewItem>(sender, e);
+        }
+
+        void TreeView_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            ApplyContextMenuBinding<TreeViewItem>(sender, e);
+        }
+        
+        void ApplyContextMenuBinding<TItem>(object sender, ContextMenuEventArgs e) where TItem : Control
+        {
+            var container = (Control)sender;
+            var item = (e.OriginalSource as Visual)?.GetSelfAndVisualAncestors().OfType<TItem>().FirstOrDefault();
+
+            e.Handled = true;
+
+            if (item != null)
+            {
+                var fileNode = item.DataContext as IPullRequestFileNode;
+
+                if (fileNode != null)
+                {
+                    container.ContextMenu.DataContext = this.DataContext;
+
+                    foreach (var menuItem in container.ContextMenu.Items.OfType<MenuItem>())
+                    {
+                        menuItem.CommandParameter = fileNode;
+                    }
+
+                    e.Handled = false;
+                }
             }
         }
     }
